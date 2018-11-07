@@ -13,15 +13,51 @@ import pandas as pd
 import numpy as np
 import math
 import json
-from itertools import cycle
-import matplotlib.pyplot as plt
+
 
 treesize = 8
 rows = 1000
 variables = range(0, 5) #superfluous variables
 combipercentages = [0.005, 0.02] #0.5% or 2% of all rows in dataset has all combinations
-significances = [0.90, 0.95, 0.99, 0.999] #signiciance percentages
+significances = [0.90,0.95,0.99,0.999] #signiciance percentages
 sigpercentages = dict()
+
+# plot with superfluous variables
+def generatedatasetsfortrees(trees, rows, nrvariables, combipercentage):
+    treeswithdataset = dict()
+    for tree in trees:
+        treestring = json.dumps(tree)
+        dataset = []
+        bes = []
+        gates = []
+        names = []
+        for key in tree:
+            node=tree[key][1]
+            if node=='BE':
+                name = str('BE'+str(len(bes)))
+                bes.append(name)
+            else:
+                name = str('G'+str(len(gates)))
+                gates.append(name)
+            names.append(name)
+        dataset.append(names)
+
+        for k in range(int(combipercentage*rows)):
+            dataset = createallcombinations(tree, dataset)
+        while len(dataset)<rows:
+            values = createdataset(tree)
+            dataset.append(list(values.values()))
+
+        headers = dataset.pop(0)
+        df = pd.DataFrame(dataset, columns=headers, dtype=bool)
+
+        nrrows = df.shape[0]
+        for i in range(nrvariables):
+            columnname = 'R'+str(i)
+            df[columnname] = createrandomvariable(nrrows)
+
+        treeswithdataset[treestring]=df
+    return treeswithdataset
 
 for significance in significances:
     trees = getalltreesofsize(treesize)
@@ -43,13 +79,13 @@ for significance in significances:
                 else:
                     wrong += 1
             percentage = float(correct / total)
-            print("extra variables: ", nv, "\n", "% correct FTs:", percentage)
+            print("extra variables: ", nv, "\n", "significance: ", significance, "\n", "% correct FTs:", percentage)
             toplot.append(percentage)
         sigpercentages[(significance, cp)] = toplot
 
 print("significance results: ", sigpercentages)
 
-
+# plot for noise levels
 def generatenoisydatasetsfortrees(trees, rows, noisepercentage, combipercentage):
     treeswithdataset = dict()
     for tree in trees:
@@ -119,5 +155,3 @@ for significance in significances:
             noisepercentages[(significance, cp)]=toplot
 
 print("noise results: ", noisepercentages)
-
-
